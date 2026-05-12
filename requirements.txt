@@ -1,0 +1,13 @@
+langchain
+torch 
+torchvision 
+torchaudio
+langchain_openai
+langchain-community
+langchain-core
+python-dotenv
+pydantic
+colorama
+wikipedia
+duckduckgo-search
+ddgs
