@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 
-from tools import search_tool, wiki_tool, financial_tools
+from tools import search_tool, financial_tools
 
 load_dotenv()
 
@@ -18,25 +18,29 @@ class Response(BaseModel):
     concept: str = Field(
         description="The specific financial or mathematical concept being addressed, e.g., 'Present Value of Annuity' or 'Bond Valuation'."
     )
+
+    answer: str = Field(
+        description="The answer of the user's questions, could be simple numerical values, the selection of MCQ or a statement."
+    )
     
     # Formula: The algebraic formula
     formula: str = Field(
-        description="The theoretical algebraic formula used for the calculation, formatted in LaTeX."
+        description="The theoretical algebraic formula used for the calculation, formatted in plain text."
     )
     
     # Substitute Formula: The plug-in step (Critical for your requirement)
     substitute_formula: str = Field(
-        description="The mathematical equation showing the actual numerical values plugged into the formula, formatted in LaTeX. Do not just give the final answer here, show the substitution step. Example: '50 \\times \\frac{1 - (1 + 0.05)^{-3}}{0.05}'"
-    )
-    
-    # Tools Used: Tracking
-    tools_used: list[str] = Field(
-        description="A list of the exact names of the tools you called to solve this problem. If no tools were used, return an empty list."
+        description="The mathematical equation showing the actual numerical values plugged into the formula, formatted in plain text. Do not just give the final answer here, show the substitution step. Example: '50 \\times \\frac{1 - (1 + 0.05)^{-3}}{0.05}'"
     )
     
     # Human Response: The final conversational output
     human_response: str = Field(
         description="A friendly, natural language summary of the final answer addressed directly to the user."
+    )
+
+    # Tools Used: Tracking
+    tools_used: list[str] = Field(
+        description="A list of the exact names of the tools you called to solve this problem. If no tools were used, return an empty list."
     )
 
 
@@ -83,7 +87,7 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 ).partial(format_instructions=parser.get_format_instructions())
 
-tools = [search_tool, wiki_tool, *financial_tools]
+tools = [search_tool, *financial_tools]
 agent = create_tool_calling_agent(
     llm = llm,
     prompt = prompt,
@@ -119,6 +123,7 @@ try:
         # Fallback: Let LangChain's parser try if standard JSON parsing fails
         structured_response = parser.parse(raw_output_str)
 
+    print(Fore.CYAN + "Answer: " + Style.RESET_ALL + structured_response.answer)
     print(Fore.CYAN + "Concept: " + Style.RESET_ALL + structured_response.concept)
     print(Fore.CYAN + "Calculation: " + Style.RESET_ALL + structured_response.substitute_formula)
     print(Fore.CYAN + "Tutor says: " + Style.RESET_ALL + structured_response.human_response)

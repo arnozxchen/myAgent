@@ -8,6 +8,5 @@ langchain-core
 python-dotenv
 pydantic
 colorama
-wikipedia
 duckduckgo-search
 ddgs

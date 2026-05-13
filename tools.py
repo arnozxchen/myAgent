@@ -1,15 +1,23 @@
-from langchain_community.tools import WikipediaQueryRun, DuckDuckGoSearchRun
-from langchain_community.utilities import WikipediaAPIWrapper
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import Tool, StructuredTool
 from datetime import datetime
 from typing import Optional
 
-def calculate_annuity_pv(coupon_payment: float, required_return: float, periods: int) -> float:
+def calculate_ordinary_annuity_pv(coupon_payment: float, required_return: float, periods: int) -> float:
     if required_return > 1:
         required_return /= 100
     
     pv = coupon_payment * (1 - 1 / (1 + required_return)**periods) / required_return
 
+    return pv
+
+
+def calculate_annuity_due_pv(coupon_payment: float, required_return: float, periods: int) -> float:
+    if required_return > 1:
+        required_return /= 100
+    
+    pv = calculate_ordinary_annuity_pv(coupon_payment=coupon_payment, required_return=required_return, periods=periods) * (1 + required_return)
+    
     return pv
 
 
@@ -35,10 +43,16 @@ def calculate_bond_value(
 
     return value
 
-annuity_tool = StructuredTool.from_function(
-    func=calculate_annuity_pv,
-    name="annuity_calc",
-    description="Calculates the present value of an annuity. Use this ONLY when calculating regular cash flows without a final face value (principal) repayment."
+ordinary_annuity_tool = StructuredTool.from_function(
+    func=calculate_ordinary_annuity_pv,
+    name="ordinary_annuity_calc",
+    description="Calculates the present value of an ordinary annuity. Use this ONLY when calculating regular cash flows without a final face value (principal) repayment."
+)
+
+annuity_due_tool = StructuredTool.from_function(
+    func=calculate_annuity_due_pv,
+    name="annuity_due_calc",
+    description="Calculates the present value of an annuity. Use this there is a final face value (principal) repayment or the question states the payment will be given at the beginning of the period"
 )
 
 bond_tool = StructuredTool.from_function(
@@ -47,10 +61,10 @@ bond_tool = StructuredTool.from_function(
     description="Calculates the present value of a bond. Use this when the problem involves a face value (principal), coupon rate, and yield to maturity."
 )
 
-financial_tools = [annuity_tool, bond_tool]
+financial_tools = [ordinary_annuity_tool, annuity_due_tool, bond_tool]
 
 
-def save_to_txt(data: str, filename: str = "research_output.txt"):
+def save_to_txt(data: str, filename: str = "questions_output.txt"):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     formatted_text = f"--- Questions Output ---\nTimestamp: {timestamp}\n\n{data}\n\n"
 
@@ -72,6 +86,4 @@ search_tool = Tool(
     description="Search the web for information",
 )
 
-api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=100)
-wiki_tool = WikipediaQueryRun(api_wrapper=api_wrapper)
 
